@@ -21,43 +21,32 @@ describe('API Route - GET Method', () => {
     await CustomService.deleteMany({})
   })
 
-  const mockServiceCreation = async () => {
+  const mockServiceCreation = async (domainId: string) => {
     return CustomService.create({
       name: 'Test Service',
       fieldName: 'testService',
+      domain: domainId,
     })
   }
 
-  it('returns all services if _id is not passed', async () => {
-    await mockServiceCreation()
-    await mockServiceCreation()
+  const testCases = [
+    { domainId: null, description: 'domainId = null' },
+    { domainId: undefined, description: 'domainId = undefined' },
+    { domainId: 0, description: 'domainId = 0' },
+    { domainId: ' ', description: 'domainId = " "' },
+  ]
 
-    const mockRequest = { method: 'GET', query: {} } as any
-    const mockResponse = {
-      status: jest.fn(() => mockResponse),
-      json: jest.fn(),
-    } as any
+  testCases.forEach(({ domainId, description }) => {
+    it(`should not load when ${description}`, async () => {
+      const mockRequest = { method: 'GET', query: { domainId } } as any
+      const mockResponse = {
+        status: jest.fn(() => mockResponse),
+        json: jest.fn(),
+      } as any
 
-    await handler(mockRequest, mockResponse)
-    expect(mockResponse.status).toHaveBeenCalledWith(200)
-    expect(mockResponse.json.mock.calls[0][0].data).toHaveLength(2)
-  })
-
-  it('returns service by _id', async () => {
-    const service = await mockServiceCreation()
-
-    const mockRequest = {
-      method: 'GET',
-      query: { _id: service._id.toString() },
-    } as any
-    const mockResponse = {
-      status: jest.fn(() => mockResponse),
-      json: jest.fn(),
-    } as any
-
-    await handler(mockRequest, mockResponse)
-    expect(mockResponse.status).toHaveBeenCalledWith(200)
-    expect(mockResponse.json.mock.calls[0][0].data).toHaveLength(1)
+      await handler(mockRequest, mockResponse)
+      expect(mockResponse.status).toHaveBeenCalledWith(400)
+    })
   })
 
   describe('Role-Based Access Control', () => {
@@ -69,9 +58,12 @@ describe('API Route - GET Method', () => {
         email: 'user@example.com',
       })
 
-      const mockRequest = { 
+      const validDomainId = domains[0]._id
+      await mockServiceCreation(validDomainId)
+
+      const mockRequest = {
         method: 'GET',
-        query: {} 
+        query: { domainId: validDomainId },
       } as any
       const mockResponse = {
         status: jest.fn(() => mockResponse),
@@ -82,7 +74,7 @@ describe('API Route - GET Method', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400)
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Не дозволено',
+        message: 'Not allowed',
       })
     })
 
@@ -94,11 +86,12 @@ describe('API Route - GET Method', () => {
         email: 'admin@example.com',
       })
 
-      await mockServiceCreation()
+      const validDomainId = domains[0]._id
+      await mockServiceCreation(validDomainId)
 
       const mockRequest = {
         method: 'GET',
-        query: {} 
+        query: { domainId: validDomainId },
       } as any
       const mockResponse = {
         status: jest.fn(() => mockResponse),
@@ -118,11 +111,12 @@ describe('API Route - GET Method', () => {
         email: 'domainadmin@example.com',
       })
 
-      await mockServiceCreation()
+      const validDomainId = domains[0]._id
+      await mockServiceCreation(validDomainId)
 
       const mockRequest = {
         method: 'GET',
-        query: {}
+        query: { domainId: validDomainId },
       } as any
       const mockResponse = {
         status: jest.fn(() => mockResponse),
